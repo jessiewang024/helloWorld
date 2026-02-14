@@ -11,7 +11,7 @@ type Dorm = {
     full_name: string | null;
 };
 
-const COLUMBIA_BLUE = "#002B5C";
+const COLUMBIA_BLUE = "#B9D9EB";
 
 function hash01(s: string) {
     let h = 2166136261;
@@ -118,7 +118,7 @@ export default function VizClient() {
                 background:
                     "radial-gradient(1100px 650px at 20% 10%, rgba(185,217,235,0.18), transparent 55%)," +
                     "radial-gradient(900px 600px at 80% 20%, rgba(185,217,235,0.12), transparent 60%)," +
-                    "#B9D9EB",
+                    "#070D14",
             }}
         >
             <div style={{ maxWidth: 1180, margin: "0 auto" }}>
