@@ -1,95 +1,82 @@
-"use client";
+import Link from "next/link";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+export default function HomePage() {
+    return (
+        <main
+            style={{
+                minHeight: "100vh",
+                background:
+                    "radial-gradient(1200px 700px at 20% 10%, rgba(185,217,235,0.18), transparent 55%)," +
+                    "radial-gradient(900px 600px at 80% 20%, rgba(185,217,235,0.12), transparent 60%)," +
+                    "#070D14",
+                color: "rgba(255,255,255,0.92)",
+                padding: "48px 28px",
+            }}
+        >
+            <div style={{ maxWidth: 980, margin: "0 auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                    <div>
+                        <h1 style={{ fontSize: 44, fontWeight: 850, margin: 0, letterSpacing: -0.6 }}>
+                            Columbia Dorm Atlas
+                        </h1>
+                        <p style={{ marginTop: 10, opacity: 0.78, lineHeight: 1.6 }}>
+                            Public mode (no sign-in). Data is fetched from your Supabase <code>dorms</code> table.
+                        </p>
+                    </div>
 
-type Dorm = {
-  id: number;
-  university_id: number | null;
-  short_name: string | null;
-  full_name: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-};
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+                style={{
+                    padding: "8px 12px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(185,217,235,0.28)",
+                    background: "rgba(185,217,235,0.08)",
+                    color: "rgba(185,217,235,0.95)",
+                    fontSize: 13,
+                }}
+            >
+              Guest mode
+            </span>
+                    </div>
+                </div>
 
-export default function DormsPage() {
-  const [rows, setRows] = useState<Dorm[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+                <div style={{ marginTop: 26, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link
+                        href="/viz"
+                        style={{
+                            textDecoration: "none",
+                            padding: "12px 16px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(185,217,235,0.28)",
+                            background: "rgba(185,217,235,0.10)",
+                            color: "rgba(255,255,255,0.92)",
+                            fontWeight: 650,
+                        }}
+                    >
+                        Open Atlas (/viz)
+                    </Link>
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setErr("");
+                    <Link
+                        href="/dorms"
+                        style={{
+                            textDecoration: "none",
+                            padding: "12px 16px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            background: "rgba(255,255,255,0.06)",
+                            color: "rgba(255,255,255,0.86)",
+                            fontWeight: 600,
+                        }}
+                    >
+                        View Table (/dorms)
+                    </Link>
+                </div>
 
-      const { data, error } = await supabase
-          .from("dorms")
-          .select("id, university_id, short_name, full_name, created_at, updated_at")
-          .order("id", { ascending: true })
-          .limit(50);
-
-      if (error) {
-        setErr(error.message);
-        setRows([]);
-      } else {
-        setRows((data ?? []) as Dorm[]);
-      }
-
-      setLoading(false);
-    }
-
-    load();
-  }, []);
-
-  return (
-      <main style={{ padding: 24, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto" }}>
-        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Dorms</h1>
-        <p style={{ color: "#555", marginBottom: 16 }}>
-          Fetching rows from an existing Supabase table: <code>dorms</code>
-        </p>
-
-        {loading && <div>Loading...</div>}
-
-        {!loading && err && (
-            <div style={{ border: "1px solid #f5c2c7", background: "#f8d7da", padding: 12 }}>
-              <b>Error:</b> {err}
-              <div style={{ marginTop: 8, color: "#6c757d" }}>
-                常见原因：RLS/Policy 不允许 anon 读取，或 env 没配置成功。
-              </div>
+                <div style={{ marginTop: 34, opacity: 0.6, fontSize: 13, lineHeight: 1.7 }}>
+                    <div>Tip: If /dorms works but /viz shows “0 dorms”, your table might have RLS enabled.</div>
+                    <div>In Supabase Table Editor, make sure dorms is readable by anon (or set it UNRESTRICTED).</div>
+                </div>
             </div>
-        )}
-
-        {!loading && !err && rows.length === 0 && (
-            <div style={{ border: "1px solid #eee", padding: 12 }}>No rows found.</div>
-        )}
-
-        {!loading && !err && rows.length > 0 && (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                <tr>
-                  {["id", "university_id", "short_name", "full_name", "created_at", "updated_at"].map((k) => (
-                      <th key={k} style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #ddd" }}>
-                        {k}
-                      </th>
-                  ))}
-                </tr>
-                </thead>
-                <tbody>
-                {rows.map((r) => (
-                    <tr key={r.id}>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{r.id}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{String(r.university_id)}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{r.short_name}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{r.full_name}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{r.created_at}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f0f0" }}>{r.updated_at}</td>
-                    </tr>
-                ))}
-                </tbody>
-              </table>
-            </div>
-        )}
-      </main>
-  );
+        </main>
+    );
 }
