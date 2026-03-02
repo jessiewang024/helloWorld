@@ -1,0 +1,238 @@
+"use client";
+
+import { useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+// Base URL for the caption pipeline API
+const API_BASE = "https://api.almostcrackd.ai";
+
+// This page lets users upload an image and generate captions using the API
+// The user must be logged in to use this feature
+export default function UploadPage() {
+  // Create a supabase client for auth
+  const supabase = createSupabaseBrowserClient();
+
+  // State variables for the upload form
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+  const [captions, setCaptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Called when the user selects a file
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Get the first file from the input
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+
+    // Create a preview URL so we can show the image before uploading
+    if (selectedFile) {
+      setPreview(URL.createObjectURL(selectedFile));
+    } else {
+      setPreview(null);
+    }
+
+    // Clear old results when a new file is selected
+    setCaptions([]);
+    setStatus("");
+  }
+
+  // Called when the user clicks the upload button
+  // This runs the 4-step pipeline: presign -> upload -> register -> generate
+  async function handleUpload() {
+    if (!file) {
+      return;
+    }
+
+    setLoading(true);
+    setStatus("");
+    setCaptions([]);
+
+    try {
+      // First, get the JWT token from the current login session
+      // This token is needed for API authentication
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setStatus("Please log in first.");
+        setLoading(false);
+        return;
+      }
+
+      const token = session.access_token;
+
+      // --- Step 1: Get a presigned URL from the API ---
+      // This gives us a URL where we can upload the image
+      setStatus("Step 1/4: Generating upload URL...");
+
+      const step1Response = await fetch(API_BASE + "/pipeline/generate-presigned-url", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ contentType: file.type }),
+      });
+
+      if (!step1Response.ok) {
+        throw new Error("Step 1 failed with status " + step1Response.status);
+      }
+
+      const step1Data = await step1Response.json();
+      const presignedUrl = step1Data.presignedUrl; // URL to upload the file to
+      const cdnUrl = step1Data.cdnUrl; // Public URL of the uploaded image
+
+      // --- Step 2: Upload the image file to the presigned URL ---
+      setStatus("Step 2/4: Uploading image...");
+
+      const step2Response = await fetch(presignedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type,
+        },
+        body: file,
+      });
+
+      if (!step2Response.ok) {
+        throw new Error("Step 2 failed with status " + step2Response.status);
+      }
+
+      // --- Step 3: Register the uploaded image with the pipeline ---
+      // Tell the API where the image is so it can process it
+      setStatus("Step 3/4: Registering image...");
+
+      const step3Response = await fetch(API_BASE + "/pipeline/upload-image-from-url", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: cdnUrl,
+          isCommonUse: false,
+        }),
+      });
+
+      if (!step3Response.ok) {
+        throw new Error("Step 3 failed with status " + step3Response.status);
+      }
+
+      const step3Data = await step3Response.json();
+      const imageId = step3Data.imageId; // ID to use in the next step
+
+      // --- Step 4: Generate captions for the image ---
+      setStatus("Step 4/4: Generating captions (this may take a moment)...");
+
+      const step4Response = await fetch(API_BASE + "/pipeline/generate-captions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageId: imageId }),
+      });
+
+      if (!step4Response.ok) {
+        throw new Error("Step 4 failed with status " + step4Response.status);
+      }
+
+      const step4Data = await step4Response.json();
+
+      // The API might return an array or a single object
+      if (Array.isArray(step4Data)) {
+        setCaptions(step4Data);
+      } else {
+        setCaptions([step4Data]);
+      }
+
+      setStatus("Done! Captions generated successfully.");
+    } catch (err: any) {
+      // Show the error message if anything went wrong
+      setStatus("Error: " + err.message);
+    } finally {
+      // Always set loading to false when done
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ padding: 32, maxWidth: 600, margin: "0 auto" }}>
+      <h1>Upload Image &amp; Generate Captions</h1>
+      <p style={{ color: "#666", marginBottom: 16 }}>
+        Select an image to upload. The system will generate funny captions for it.
+      </p>
+
+      {/* File input - only accepts image types */}
+      <input
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic"
+        onChange={handleFileChange}
+      />
+
+      {/* Show a preview of the selected image */}
+      {preview && (
+        <div style={{ marginTop: 16 }}>
+          <img
+            src={preview}
+            alt="Preview"
+            style={{ maxWidth: 400, borderRadius: 8 }}
+          />
+        </div>
+      )}
+
+      {/* Upload button */}
+      <div style={{ marginTop: 16 }}>
+        <button
+          onClick={handleUpload}
+          disabled={!file || loading}
+          style={{
+            padding: "10px 24px",
+            borderRadius: 4,
+            border: "none",
+            background: (!file || loading) ? "#ccc" : "#002B5C",
+            color: "white",
+            cursor: (!file || loading) ? "default" : "pointer",
+            fontSize: 16,
+          }}
+        >
+          {loading ? "Processing..." : "Upload & Generate Captions"}
+        </button>
+      </div>
+
+      {/* Show the current status message */}
+      {status && (
+        <p style={{
+          marginTop: 12,
+          color: status.startsWith("Error") ? "red" : "#333",
+        }}>
+          {status}
+        </p>
+      )}
+
+      {/* Show the generated captions */}
+      {captions.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <h2>Generated Captions</h2>
+          {captions.map(function (caption, index) {
+            return (
+              <div
+                key={index}
+                style={{
+                  border: "1px solid #ddd",
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 8,
+                  background: "#fafafa",
+                }}
+              >
+                <p style={{ margin: 0 }}>
+                  {caption.content || JSON.stringify(caption)}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,73 @@
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import CaptionList from "./CaptionList";
+
+// This page fetches captions from the database and displays them
+// Users can vote on captions if they are logged in
+export default async function CaptionsPage() {
+  // Create a supabase client for server-side queries
+  const supabase = await createSupabaseServerClient();
+
+  // Check if the user is logged in
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Fetch the 20 most recent captions from the database
+  const { data: captions } = await supabase
+    .from("captions")
+    .select("id, content, like_count, image_id")
+    .order("created_datetime_utc", { ascending: false })
+    .limit(20);
+
+  // Build a map of image_id -> image_url so we can show images
+  // First, collect all unique image IDs from the captions
+  let imageIds: string[] = [];
+  if (captions) {
+    for (let i = 0; i < captions.length; i++) {
+      const imageId = captions[i].image_id;
+      // Only add if it exists and not already in the list
+      if (imageId && !imageIds.includes(imageId)) {
+        imageIds.push(imageId);
+      }
+    }
+  }
+
+  // Then, fetch the image URLs for those IDs
+  let imageMap: Record<string, string> = {};
+  if (imageIds.length > 0) {
+    const { data: images } = await supabase
+      .from("images")
+      .select("id, url")
+      .in("id", imageIds);
+
+    // Convert the array into a simple lookup object: { imageId: url }
+    if (images) {
+      for (let i = 0; i < images.length; i++) {
+        imageMap[images[i].id] = images[i].url;
+      }
+    }
+  }
+
+  return (
+    <div style={{ padding: 32, maxWidth: 800, margin: "0 auto" }}>
+      <h1>Captions</h1>
+
+      {/* Show different message based on login status */}
+      {!user && (
+        <p style={{ color: "#666", marginBottom: 16 }}>
+          <a href="/login">Log in</a> to vote on captions.
+        </p>
+      )}
+      {user && (
+        <p style={{ color: "#333", marginBottom: 16 }}>
+          Logged in as {user.email}
+        </p>
+      )}
+
+      {/* Render the caption list with voting buttons */}
+      <CaptionList
+        captions={captions || []}
+        imageMap={imageMap}
+        userId={user ? user.id : null}
+      />
+    </div>
+  );
+}

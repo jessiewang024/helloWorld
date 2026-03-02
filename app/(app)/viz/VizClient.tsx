@@ -122,7 +122,6 @@ export default function VizClient() {
             }}
         >
             <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-                {/* Header */}
                 <div
                     style={{
                         display: "flex",
@@ -188,7 +187,6 @@ export default function VizClient() {
                     </div>
                 </div>
 
-                {/* Chart box */}
                 <div
                     ref={boxRef}
                     onMouseMove={onMove}
@@ -233,12 +231,11 @@ export default function VizClient() {
                         >
                             Supabase error: {err}
                             <div style={{ opacity: 0.75, marginTop: 6 }}>
-                                If dorms has RLS, anon can’t read it. Make dorms readable or UNRESTRICTED.
+                                If dorms has RLS, anon can't read it. Make dorms readable or UNRESTRICTED.
                             </div>
                         </div>
                     )}
 
-                    {/* Points */}
                     {points.map((p) => (
                         <div
                             key={p.dorm.id}
@@ -258,7 +255,6 @@ export default function VizClient() {
                         />
                     ))}
 
-                    {/* Tooltip */}
                     {hover && (
                         <div
                             style={{
@@ -312,7 +308,6 @@ export default function VizClient() {
                         </div>
                     )}
 
-                    {/* Bottom pill */}
                     <div
                         style={{
                             position: "absolute",
@@ -331,7 +326,6 @@ export default function VizClient() {
                     </div>
                 </div>
 
-                {/* Footer note */}
                 <div style={{ marginTop: 12, opacity: 0.55, fontSize: 12 }}>
                     If this shows 0 dorms, check Supabase permissions for the <code>dorms</code> table.
                 </div>

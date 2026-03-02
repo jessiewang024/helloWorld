@@ -1,0 +1,19 @@
+import Link from "next/link";
+
+// Home page - shows navigation links to all pages in the app
+export default function HomePage() {
+  return (
+    <div style={{ padding: 32, maxWidth: 600, margin: "0 auto" }}>
+      <h1 style={{ marginBottom: 24 }}>The Humor Project</h1>
+
+      {/* Navigation links to each page */}
+      <nav style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <Link href="/captions">Captions &amp; Voting</Link>
+        <Link href="/upload">Upload Image</Link>
+        <Link href="/dorms">Dorms</Link>
+        <Link href="/login">Login</Link>
+        <Link href="/protect">Protected Page</Link>
+      </nav>
+    </div>
+  );
+}
